@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Healthcare Chatbot</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="chat-wrapper">
+    <h1> Healthcare Chatbot</h1>
+    <div class="chat-container">
+      <div class="chat-box" id="messages"></div>
+      <div class="input-area">
+        <input type="text" id="user-input" placeholder="Type your question about any disease..." />
+        <button id="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("user-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function appendMessage(content, sender, isHTML = false) {
+      const msgWrapper = document.createElement("div");
+      msgWrapper.classList.add("message-row", sender === "user" ? "user-row" : "bot-row");
+
+      const iconDiv = document.createElement("div");
+      iconDiv.className = "icon";
+      iconDiv.innerHTML = sender === "user" ? "🙋‍♂️" : "🤖";
+
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add(sender === "user" ? "user-msg" : "bot-msg");
+
+      if (isHTML && sender === "bot") {
+        msgDiv.innerHTML = content;
+      } else {
+        msgDiv.textContent = content;
+      }
+
+      msgWrapper.appendChild(iconDiv);
+      msgWrapper.appendChild(msgDiv);
+
+      const chatBox = document.getElementById("messages");
+      chatBox.appendChild(msgWrapper);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      appendMessage(userText, "user");
+      input.value = "";
+
+      appendMessage("Bot is typing...", "bot");
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: userText }),
+        });
+
+        const data = await res.json();
+        const botMessage = data.response || "Sorry, I couldn't get an answer.";
+
+        const last = document.querySelector("#messages .bot-row:last-child");
+        if (last && last.textContent.includes("Bot is typing...")) last.remove();
+
+        appendMessage(botMessage, "bot", true);
+      } catch (err) {
+        appendMessage("Bot: Failed to get a response.", "bot");
+      }
+    }
+  </script>
+</body>
+</html>
